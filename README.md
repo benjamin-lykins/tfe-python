@@ -1,6 +1,8 @@
-# TFE Onboarding Python
+# TFE-Python
 
 Small CLI helpers for Terraform Cloud/Enterprise using the `pytfe` SDK.
+
+It is really basic, just messing around with Python and the `pytfe` SDK to interact with Terraform Cloud/Enterprise.
 
 ## Prerequisites
 
@@ -68,4 +70,3 @@ python varset.py delete --name "my-varset"
 
 - All scripts use environment variables via `python-dotenv`.
 - If a resource is not found, try `list` to confirm names and IDs.
-# tfe-python
