@@ -4,16 +4,27 @@ import dotenv
 
 from pytfe import TFEClient, TFEConfig
 from pytfe.models import (
+    ProjectListOptions,
     WorkspaceCreateOptions,
     WorkspaceListOptions,
     WorkspaceUpdateOptions,
 )
 
-def create(name, project=None):
+def create(name, project_id=None, project_name=None):
     try:
+        if project_name and not project_id:
+            projects = client.projects.list(org, ProjectListOptions())
+            for project in projects:
+                if project.name == project_name:
+                    project_id = project.id
+                    break
+            else:
+                print(f"Project with name {project_name} not found")
+                return
+
         create_options = WorkspaceCreateOptions(
             name=name,
-            project_id=project
+            project_id=project_id
         )
         
         workspace = client.workspaces.create(org, create_options)
@@ -71,7 +82,8 @@ if __name__ == "__main__":
     # Create command
     create_parser = subparsers.add_parser('create', help='Create a new workspace')
     create_parser.add_argument("--name", type=str, required=True, help="Name of the workspace")
-    create_parser.add_argument("--project", type=str, help="Project ID")
+    create_parser.add_argument("--project-id", type=str, help="Project ID")
+    create_parser.add_argument("--project-name", type=str, help="Project name")
     
     # Read command
     read_parser = subparsers.add_parser('read', help='Read workspace details')
@@ -94,9 +106,11 @@ if __name__ == "__main__":
     # Handle commands
     if args.command == 'create':
         print(f"Creating workspace: {args.name}")
-        if args.project:
-            print(f"Project ID: {args.project}")
-        create(name=args.name, project=args.project)
+        if args.project_id:
+            print(f"Project ID: {args.project_id}")
+        if args.project_name:
+            print(f"Project Name: {args.project_name}")
+        create(name=args.name, project_id=args.project_id, project_name=args.project_name)
     elif args.command == 'read':
         print(f"Reading workspace: {args.name}")
         read(name=args.name)
