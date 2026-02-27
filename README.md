@@ -11,8 +11,10 @@ It is really basic, just messing around with Python and the `pytfe` SDK to inter
 
 Install dependencies:
 
+Requirements are listed in `requirements.in` and `requirements.txt`.
+
 ```bash
-pip install pytfe python-dotenv
+pip install -r requirements.txt
 ```
 
 ## Configuration
