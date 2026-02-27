@@ -7,7 +7,7 @@ It is really basic, just messing around with Python and the `pytfe` SDK to inter
 ## Prerequisites
 
 - Python 3.11+
-- Terraform Cloud/Enterprise token with access to your organization
+- Terraform Cloud/Enterprise token with access to your organization (some of these may be limited for free-tier organizations)
 
 Install dependencies:
 
@@ -149,6 +149,3 @@ python policy_sets.py remove-projects --name "my-policy-set" --project-ids "prj-
 - All scripts use environment variables via `python-dotenv`.
 - If a resource is not found, try `list` to confirm names and IDs.
 - Teams API uses direct HTTP calls via the TFE API (not yet supported in pytfe SDK).
-- Variable categories can be `terraform` (default) or `env` for environment variables.
-- Use `--sensitive` flag to mark variables as sensitive (values will be write-only).
-- Use `--hcl` flag to parse variable values as HCL.
