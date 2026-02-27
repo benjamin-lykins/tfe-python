@@ -24,7 +24,7 @@ def create(name, project_id=None, project_name=None):
 
         create_options = WorkspaceCreateOptions(
             name=name,
-            project_id=project_id
+            project={"id": project_id} if project_id else None
         )
         
         workspace = client.workspaces.create(org, create_options)
