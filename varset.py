@@ -4,8 +4,12 @@ import dotenv
 
 from pytfe import TFEClient, TFEConfig
 from pytfe.models import (
+    Project,
+    ProjectListOptions,
     VariableSetCreateOptions,
+    VariableSetApplyToProjectsOptions,
     VariableSetListOptions,
+    VariableSetRemoveFromProjectsOptions,
     VariableSetUpdateOptions,
     VariableSetVariableCreateOptions,
     VariableSetVariableListOptions,
@@ -86,6 +90,71 @@ def delete(name):
         print(f"Successfully deleted variable set: {name}")
     except Exception as e:
         print(f"Error deleting variable set: {e}")
+
+def _resolve_varset_id(varset_name=None, varset_id=None):
+    if varset_id:
+        return varset_id
+    if not varset_name:
+        print("Please provide either --varset-name or --varset-id")
+        return None
+
+    varsets = client.variable_sets.list(org, VariableSetListOptions())
+    for varset in varsets:
+        if varset.name == varset_name:
+            return varset.id
+
+    print(f"Variable set '{varset_name}' not found")
+    return None
+
+def _resolve_project_ids(project_ids=None, project_names=None):
+    if project_ids:
+        return project_ids
+    if not project_names:
+        print("Please provide --project-ids or --project-names")
+        return None
+
+    projects = client.projects.list(org, ProjectListOptions())
+    name_to_id = {project.name: project.id for project in projects}
+    missing = [name for name in project_names if name not in name_to_id]
+    if missing:
+        print(f"Project(s) not found: {', '.join(missing)}")
+        return None
+
+    return [name_to_id[name] for name in project_names]
+
+def add_projects(varset_name=None, varset_id=None, project_ids=None, project_names=None):
+    try:
+        varset_id = _resolve_varset_id(varset_name=varset_name, varset_id=varset_id)
+        if not varset_id:
+            return
+
+        resolved_project_ids = _resolve_project_ids(project_ids=project_ids, project_names=project_names)
+        if not resolved_project_ids:
+            return
+
+        projects = [Project(id=project_id) for project_id in resolved_project_ids]
+        options = VariableSetApplyToProjectsOptions(projects=projects)
+        client.variable_sets.apply_to_projects(varset_id, options)
+        print(f"Successfully added {len(resolved_project_ids)} project(s) to variable set")
+    except Exception as e:
+        print(f"Error adding projects to variable set: {e}")
+
+def remove_projects(varset_name=None, varset_id=None, project_ids=None, project_names=None):
+    try:
+        varset_id = _resolve_varset_id(varset_name=varset_name, varset_id=varset_id)
+        if not varset_id:
+            return
+
+        resolved_project_ids = _resolve_project_ids(project_ids=project_ids, project_names=project_names)
+        if not resolved_project_ids:
+            return
+
+        projects = [Project(id=project_id) for project_id in resolved_project_ids]
+        options = VariableSetRemoveFromProjectsOptions(projects=projects)
+        client.variable_sets.remove_from_projects(varset_id, options)
+        print(f"Successfully removed {len(resolved_project_ids)} project(s) from variable set")
+    except Exception as e:
+        print(f"Error removing projects from variable set: {e}")
 
 # Variable Set Variable Management Functions
 
@@ -347,6 +416,19 @@ if __name__ == "__main__":
     var_delete_parser.add_argument("--varset", type=str, required=True, help="Name of the variable set")
     var_delete_parser.add_argument("--key", type=str, help="Variable key/name to delete")
     var_delete_parser.add_argument("--var-id", type=str, help="ID of the variable to delete")
+
+    # Variable Set Project commands
+    add_projects_parser = subparsers.add_parser('add-projects', help='Attach projects to a variable set')
+    add_projects_parser.add_argument("--varset-name", type=str, help="Variable set name")
+    add_projects_parser.add_argument("--varset-id", type=str, help="Variable set ID")
+    add_projects_parser.add_argument("--project-ids", nargs="+", help="Project ID(s) to add")
+    add_projects_parser.add_argument("--project-names", nargs="+", help="Project name(s) to add")
+
+    remove_projects_parser = subparsers.add_parser('remove-projects', help='Detach projects from a variable set')
+    remove_projects_parser.add_argument("--varset-name", type=str, help="Variable set name")
+    remove_projects_parser.add_argument("--varset-id", type=str, help="Variable set ID")
+    remove_projects_parser.add_argument("--project-ids", nargs="+", help="Project ID(s) to remove")
+    remove_projects_parser.add_argument("--project-names", nargs="+", help="Project name(s) to remove")
     
     args = parser.parse_args()
     
@@ -402,5 +484,21 @@ if __name__ == "__main__":
     elif args.command == 'var-delete':
         print(f"Deleting variable from variable set '{args.varset}'")
         var_delete(varset_name=args.varset, key=args.key, variable_id=args.var_id)
+    elif args.command == 'add-projects':
+        print("Adding project(s) to variable set")
+        add_projects(
+            varset_name=args.varset_name,
+            varset_id=args.varset_id,
+            project_ids=args.project_ids,
+            project_names=args.project_names
+        )
+    elif args.command == 'remove-projects':
+        print("Removing project(s) from variable set")
+        remove_projects(
+            varset_name=args.varset_name,
+            varset_id=args.varset_id,
+            project_ids=args.project_ids,
+            project_names=args.project_names
+        )
     else:
         parser.print_help()

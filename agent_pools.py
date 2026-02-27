@@ -4,10 +4,14 @@ import dotenv
 
 from pytfe import TFEClient, TFEConfig
 from pytfe.models import (
+    AgentPoolAssignToWorkspacesOptions,
     AgentPoolCreateOptions,
     AgentPoolListOptions,
     AgentPoolReadOptions,
+    AgentPoolRemoveFromWorkspacesOptions,
     AgentPoolUpdateOptions,
+    ProjectListOptions,
+    WorkspaceListOptions,
 )
 
 def create(name, description=None):
@@ -117,6 +121,89 @@ def delete(name=None, pool_id=None):
     except Exception as e:
         print(f"Error deleting agent pool: {e}")
 
+def _resolve_pool_id(pool_name=None, pool_id=None):
+    """Resolve pool name to ID if needed"""
+    if pool_id:
+        return pool_id
+    if not pool_name:
+        print("Please provide either --pool-name or --pool-id")
+        return None
+    
+    pools = client.agent_pools.list(org, AgentPoolListOptions())
+    for pool in pools:
+        if pool.name == pool_name:
+            return pool.id
+    
+    print(f"Agent pool '{pool_name}' not found")
+    return None
+
+def _resolve_project_id(project_name=None, project_id=None):
+    """Resolve project name to ID if needed"""
+    if project_id:
+        return project_id
+    if not project_name:
+        print("Please provide either --project-name or --project-id")
+        return None
+    
+    projects = client.projects.list(org, ProjectListOptions())
+    for project in projects:
+        if project.name == project_name:
+            return project.id
+    
+    print(f"Project '{project_name}' not found")
+    return None
+
+def _get_workspaces_in_project(project_id):
+    """Get all workspace IDs for a project"""
+    options = WorkspaceListOptions(project_id=project_id)
+    workspaces = client.workspaces.list(org, options)
+    project_workspace_ids = [ws.id for ws in workspaces]
+    return project_workspace_ids
+
+def assign_to_project(pool_name=None, pool_id=None, project_name=None, project_id=None):
+    """Assign agent pool to all workspaces in a project"""
+    try:
+        pool_id = _resolve_pool_id(pool_name=pool_name, pool_id=pool_id)
+        if not pool_id:
+            return
+        
+        project_id = _resolve_project_id(project_name=project_name, project_id=project_id)
+        if not project_id:
+            return
+        
+        workspace_ids = _get_workspaces_in_project(project_id)
+        if not workspace_ids:
+            print(f"No workspaces found in project {project_id}")
+            return
+        
+        options = AgentPoolAssignToWorkspacesOptions(workspace_ids=workspace_ids)
+        client.agent_pools.assign_to_workspaces(pool_id, options)
+        print(f"Successfully assigned agent pool to {len(workspace_ids)} workspace(s) in project")
+    except Exception as e:
+        print(f"Error assigning agent pool to project: {e}")
+
+def remove_from_project(pool_name=None, pool_id=None, project_name=None, project_id=None):
+    """Remove agent pool from all workspaces in a project"""
+    try:
+        pool_id = _resolve_pool_id(pool_name=pool_name, pool_id=pool_id)
+        if not pool_id:
+            return
+        
+        project_id = _resolve_project_id(project_name=project_name, project_id=project_id)
+        if not project_id:
+            return
+        
+        workspace_ids = _get_workspaces_in_project(project_id)
+        if not workspace_ids:
+            print(f"No workspaces found in project {project_id}")
+            return
+        
+        options = AgentPoolRemoveFromWorkspacesOptions(workspace_ids=workspace_ids)
+        client.agent_pools.remove_from_workspaces(pool_id, options)
+        print(f"Successfully removed agent pool from {len(workspace_ids)} workspace(s) in project")
+    except Exception as e:
+        print(f"Error removing agent pool from project: {e}")
+
 if __name__ == "__main__":
     dotenv.load_dotenv()
     
@@ -149,6 +236,20 @@ if __name__ == "__main__":
     delete_parser.add_argument("--name", type=str, help="Name of the agent pool to delete")
     delete_parser.add_argument("--id", type=str, help="ID of the agent pool to delete")
     
+    # Assign to project command
+    assign_project_parser = subparsers.add_parser('assign-to-project', help='Assign agent pool to all workspaces in a project')
+    assign_project_parser.add_argument("--pool-name", type=str, help="Name of the agent pool")
+    assign_project_parser.add_argument("--pool-id", type=str, help="ID of the agent pool")
+    assign_project_parser.add_argument("--project-name", type=str, help="Name of the project")
+    assign_project_parser.add_argument("--project-id", type=str, help="ID of the project")
+    
+    # Remove from project command
+    remove_project_parser = subparsers.add_parser('remove-from-project', help='Remove agent pool from all workspaces in a project')
+    remove_project_parser.add_argument("--pool-name", type=str, help="Name of the agent pool")
+    remove_project_parser.add_argument("--pool-id", type=str, help="ID of the agent pool")
+    remove_project_parser.add_argument("--project-name", type=str, help="Name of the project")
+    remove_project_parser.add_argument("--project-id", type=str, help="ID of the project")
+    
     args = parser.parse_args()
     
     # Handle commands
@@ -174,5 +275,11 @@ if __name__ == "__main__":
     elif args.command == 'delete':
         print(f"Deleting agent pool...")
         delete(name=args.name, pool_id=args.id)
+    elif args.command == 'assign-to-project':
+        print("Assigning agent pool to project workspaces...")
+        assign_to_project(pool_name=args.pool_name, pool_id=args.pool_id, project_name=args.project_name, project_id=args.project_id)
+    elif args.command == 'remove-from-project':
+        print("Removing agent pool from project workspaces...")
+        remove_from_project(pool_name=args.pool_name, pool_id=args.pool_id, project_name=args.project_name, project_id=args.project_id)
     else:
         parser.print_help()

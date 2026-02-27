@@ -72,6 +72,12 @@ python varset.py var-list --varset "my-varset"
 python varset.py var-read --varset "my-varset" --key "my_var"
 python varset.py var-update --varset "my-varset" --key "my_var" --value "new_value"
 python varset.py var-delete --varset "my-varset" --key "my_var"
+
+# Manage projects linked to a variable set
+python varset.py add-projects --varset-name "my-varset" --project-ids "prj-1" "prj-2"
+python varset.py add-projects --varset-name "my-varset" --project-names "project-a" "project-b"
+python varset.py remove-projects --varset-id "varset-xxxxxxxxxxxxxxxx" --project-ids "prj-1"
+python varset.py remove-projects --varset-id "varset-xxxxxxxxxxxxxxxx" --project-names "project-a"
 ```
 
 ### Workspace Variables
@@ -107,6 +113,14 @@ python agent_pools.py read --name "my-agent-pool"
 python agent_pools.py read --id apool-xxxxxxxxxxxxxxxx
 python agent_pools.py update --name "my-agent-pool" --new-name "renamed-agent-pool"
 python agent_pools.py delete --name "my-agent-pool"
+
+# Assign agent pool to all workspaces in a project
+python agent_pools.py assign-to-project --pool-name "my-agent-pool" --project-name "my-project"
+python agent_pools.py assign-to-project --pool-id "apool-xxxxxxxxxxxxxxxx" --project-id "prj-xxxxxxxxxxxxxxxx"
+
+# Remove agent pool from all workspaces in a project
+python agent_pools.py remove-from-project --pool-name "my-agent-pool" --project-name "my-project"
+python agent_pools.py remove-from-project --pool-id "apool-xxxxxxxxxxxxxxxx" --project-id "prj-xxxxxxxxxxxxxxxx"
 ```
 
 ### Agent Tokens
