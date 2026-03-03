@@ -32,7 +32,6 @@ def create(pool_name=None, pool_id=None, description=None):
         print(f"Successfully created agent token")
         print(f"Token ID: {token.id}")
         print(f"Token: {token.token}")
-        print(f"⚠️  Save this token now - you won't be able to see it again!")
     except Exception as e:
         print(f"Error creating agent token: {e}")
 

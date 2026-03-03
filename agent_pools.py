@@ -14,14 +14,20 @@ from pytfe.models import (
     WorkspaceListOptions,
 )
 
-def create(name, description=None):
+def create(name, organization_scoped=False, description=None):
     """Create a new agent pool"""
     try:
-        create_options = AgentPoolCreateOptions(name=name)
+        create_options = AgentPoolCreateOptions(
+            name=name,
+            organization_scoped=organization_scoped,
+            allowed_workspace_policy="all"
+            )
         
         pool = client.agent_pools.create(org, create_options)
         print(f"Successfully created agent pool: {pool.name}")
+        
         print(f"Agent Pool ID: {pool.id}")
+        print(f"Organization Scoped: {pool.organization_scoped}")
     except Exception as e:
         print(f"Error creating agent pool: {e}")
 

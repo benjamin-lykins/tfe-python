@@ -1,0 +1,72 @@
+name: Provision HCP Terraform Resources
+
+on:
+  workflow_dispatch:
+    inputs:
+      project_name:
+        description: Project name to provision
+        required: true
+        type: string
+
+jobs:
+  provision:
+    runs-on: ubuntu-latest
+    env:
+      TFE_TOKEN: ${{ secrets.TFE_TOKEN }}
+      TFE_ORGANIZATION: ${{ secrets.TFE_ORGANIZATION }}
+      TFE_HOSTNAME: ${{ secrets.TFE_HOSTNAME }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: python -m pip install -r requirements.txt
+
+      - name: Set provisioning variables
+        run: |
+          set -euo pipefail
+
+          PROJECT_NAME="${{ inputs.project_name }}"
+          TEAM_NAME="${PROJECT_NAME}-team"
+          PROJECT_DESCRIPTION="Project for ${PROJECT_NAME}"
+          POOL_NAME="${PROJECT_NAME}-pool"
+          VARSET_NAME="${PROJECT_NAME}-varset"
+
+          {
+            echo "PROJECT_NAME=$PROJECT_NAME"
+              
+            echo "PROJECT_DESCRIPTION=$PROJECT_DESCRIPTION"
+            echo "POOL_NAME=$POOL_NAME"
+            echo "VARSET_NAME=$VARSET_NAME"
+          } >> "$GITHUB_ENV"
+
+      - name: Create teams
+        run: |
+          set -euo pipefail
+          python teams.py create --name "$TEAM_NAME-re" --visibility secret
+          python teams.py create --name "$TEAM_NAME" --visibility secret
+
+      - name: Create project
+        run: |
+          set -euo pipefail
+          python projects.py create --name "$PROJECT_NAME" --description "$PROJECT_DESCRIPTION"
+
+      - name: Create agent pool
+        run: |
+          set -euo pipefail
+          python agent_pools.py create --name "$POOL_NAME"
+
+      - name: Create variable set
+        run: |
+          set -euo pipefail
+          python varset.py create --name "$VARSET_NAME" --description "Variables for ${PROJECT_NAME}"
+
+      - name: Attach variable set to project
+        run: |
+          set -euo pipefail
+          python varset.py add-projects --varset-name "$VARSET_NAME" --project-names "$PROJECT_NAME"
